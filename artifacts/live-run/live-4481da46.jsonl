@@ -1,0 +1,1 @@
+{"event_hash":"sha256:af19c069a3b51622f5a0d9cb5ed13ff3ed16b8315a933d12d49cab1d689b4c57","event_type":"run_started","payload":{"policy_hash":"sha256:f428c2e8162cd534187699ab0ca18c4225cc71cd2c00aebe2e087c23fd71c69a","policy_version":"rg-demo-1","run_id":"live-4481da46"},"prev_event_hash":"GENESIS","ts":"2026-09-13T15:15:32.232173+00:00"}

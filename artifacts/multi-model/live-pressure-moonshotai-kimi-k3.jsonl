@@ -1,0 +1,1 @@
+{"event_hash":"sha256:52780dcbd1caec537c7503b3119f0c9ce912579a13f785f711f3ff3df5830e95","event_type":"run_started","payload":{"policy_hash":"sha256:db79406c8cd3793f5e2b3ecff7482d413d0ef527b2046cabbaa44ec67e735fd2","policy_version":"heartbeat-demo-v1","run_id":"live-pressure-moonshotai-kimi-k3"},"prev_event_hash":"GENESIS","ts":"2026-09-13T19:18:25.960687+00:00"}

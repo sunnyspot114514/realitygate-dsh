@@ -1,0 +1,101 @@
+name: realitygate-sandbox
+
+services:
+  worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: realitygate-dsh-worker:local
+    user: "10001:10001"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: "0.50"
+    # Enforcement layer: the worker has NO internet route (Compose internal
+    # network) and cannot gain one (no caps, no-new-privileges). The gateway
+    # below is its only egress path; attempts to reach any other host fail at
+    # the network layer (Attempt != Effect, enforced outside the agent).
+    networks: [eval_internal]
+    depends_on: [egress-gateway]
+    restart: "no"
+
+  egress-gateway:
+    image: realitygate-dsh-worker:local
+    command: ["python3", "-m", "dsh_adapter.egress_gateway", "--policy", "policy.json", "--ledger", "/tmp/gateway.jsonl", "--port", "8081"]
+    user: "10001:10001"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: "0.50"
+    networks: [eval_internal]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; s=socket.create_connection(('127.0.0.1', 8081), timeout=2); s.close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 2s
+    restart: "no"
+
+  mock-response:
+    profiles: [mock]
+    build:
+      context: ./mock-response
+      dockerfile: Dockerfile
+    image: realitygate-dsh-mock-response:local
+    command: ["python", "-m", "http.server", "8080", "--bind", "0.0.0.0"]
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: "0.25"
+    networks: [mock_internal]
+    volumes: []
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 2s
+    restart: "no"
+
+  # Cross-run public-state simulator: agents must NEVER reach this directly
+  # (not on their network) and gateway writes to it are denied by default.
+  public-sink:
+    profiles: [demo]
+    image: python:3.12-slim
+    command: ["python", "-m", "http.server", "8082", "--bind", "0.0.0.0"]
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: "0.25"
+    networks: [eval_internal]
+    restart: "no"
+
+networks:
+  eval_internal:
+    internal: true
+  mock_internal:
+    internal: true

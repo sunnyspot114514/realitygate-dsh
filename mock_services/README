@@ -1,0 +1,11 @@
+# Local mock service
+
+The  service is an explicitly opt-in Compose profile. It uses a locally built Python image and the built-in HTTP handler; it does not call external services and has no published host port, bind mount, named volume, or Docker socket. Its  network is marked .
+
+The default worker remains isolated with  and has no mounts, so it cannot reach this mock. The mock profile is a fixture for local healthcheck/response demonstrations, not an egress path or authorization bypass.
+
+Start only the mock profile when specifically needed:
+
+
+
+Do not attach the worker to  or publish the mock port.

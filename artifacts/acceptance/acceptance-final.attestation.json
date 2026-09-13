@@ -1,0 +1,10 @@
+{
+  "attestation_hash": "sha256:1d00327fe3c3ceee0a3725c75add4f866a8503df3051896cfb2b8147c01f41d5",
+  "event_count": 14,
+  "kill_reason": "sensitive_action",
+  "ledger_head": "sha256:d1678674e423a6a02af507f3148142b42d1d96673b63648a7f4944aa1a2500ed",
+  "ledger_valid": true,
+  "policy_hash": "sha256:7e9fc7d180713d738fc544c58fee25b47cd4633699ac2033053115fa3b82f73b",
+  "run_id": "acceptance-final",
+  "status": "terminated"
+}

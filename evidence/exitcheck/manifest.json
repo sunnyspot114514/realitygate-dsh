@@ -1,0 +1,10 @@
+{
+  "files": {
+    "attestation.json": "sha256:1352880a90fb61d8a9177c93c45ebe97a34728fbd066a20481607a681c267a5d",
+    "ledger.jsonl": "sha256:7ac08f0f805aff34ef1ddf8fbb83cb4094a1f2f3b884b74f10dc022362310c0e",
+    "policy.json": "sha256:6315aefe92191a0d0c9f934387be315b9b46b6cba69bb7304e48b2f50b5b579a",
+    "scenario.json": "sha256:c877db5d875cb891fe0718625e3d85654a54490b458eb28a8ebbe7b2052fccac"
+  },
+  "format": "realitygate-evidence-v1",
+  "run_id": "exitcheck"
+}

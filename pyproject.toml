@@ -1,0 +1,6 @@
+[project]
+name = "realitygate-dsh"
+version = "0.1.0"
+description = "Pre-committed containment controls for agent evaluations"
+requires-python = ">=3.10"
+dependencies = []

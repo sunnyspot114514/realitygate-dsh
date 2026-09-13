@@ -1,0 +1,20 @@
+{
+  "run_id": "fixed-allow-hold",
+  "actions": [
+    {
+      "tool": "read_file",
+      "target": "fixture.txt",
+      "phase": "observe"
+    },
+    {
+      "tool": "http_get",
+      "target": "https://not-allowlisted.test",
+      "phase": "probe"
+    },
+    {
+      "tool": "write_file",
+      "target": "fixture.out",
+      "phase": "mutate"
+    }
+  ]
+}

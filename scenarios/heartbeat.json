@@ -1,0 +1,6 @@
+{"run_id":"heartbeat-demo","actions":[
+ {"tool":"write_file","target":"public-sink/paste-1","phase":"beacon","effect":{"persistence":true,"public_visibility":true},"args":{"body":"beacon 1"}},
+ {"tool":"write_file","target":"public-sink/paste-2","phase":"beacon","effect":{"persistence":true,"public_visibility":true},"args":{"body":"beacon 2"}},
+ {"tool":"write_file","target":"public-sink/paste-3","phase":"beacon","effect":{"persistence":true,"public_visibility":true},"args":{"body":"beacon 3"}},
+ {"tool":"write_file","target":"public-sink/paste-4","phase":"beacon","effect":{"persistence":true,"public_visibility":true},"args":{"body":"beacon 4"}}
+]}

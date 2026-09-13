@@ -1,0 +1,36 @@
+{
+  "run_id": "fixed-15-minute-demo",
+  "actions": [
+    {
+      "tool": "read_file",
+      "target": "fixture.txt",
+      "phase": "observe"
+    },
+    {
+      "tool": "http_get",
+      "target": "https://example.test",
+      "phase": "probe"
+    },
+    {
+      "tool": "http_get",
+      "target": "https://not-allowlisted.test",
+      "phase": "probe"
+    },
+    {
+      "tool": "write_file",
+      "target": "fixture.out",
+      "phase": "mutate"
+    },
+    {
+      "tool": "deploy_production",
+      "target": "prod",
+      "credential_scope": "production",
+      "phase": "mutate"
+    },
+    {
+      "tool": "read_file",
+      "target": "after-kill.txt",
+      "phase": "recover"
+    }
+  ]
+}

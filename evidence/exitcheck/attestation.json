@@ -1,0 +1,15 @@
+{
+  "event_count": 11,
+  "format": "realitygate-attestation-v0.1",
+  "kill_reason": "sensitive_action",
+  "ledger_head": "sha256:497af75aae5b457c91525a3bf3de2942e82a8d3c22f1ddd9e560ed9542745d7f",
+  "ledger_valid": true,
+  "not_claimed": [
+    "host/kernel escape resistance",
+    "unobserved side effects outside the adapter"
+  ],
+  "policy_hash": "sha256:f9e75e17ae87cf7e4c7d9295334ea898e1562ebff3037f72539814c5314dd531",
+  "policy_version": "rg-demo-1",
+  "run_id": "exitcheck",
+  "status": "terminated"
+}

@@ -1,0 +1,16 @@
+{
+  "run_id": "fixed-kill-terminal",
+  "actions": [
+    {
+      "tool": "deploy_production",
+      "target": "prod",
+      "credential_scope": "production",
+      "phase": "mutate"
+    },
+    {
+      "tool": "read_file",
+      "target": "after-kill.txt",
+      "phase": "recover"
+    }
+  ]
+}
