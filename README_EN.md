@@ -18,13 +18,16 @@ Built for Track 1 (Containment) of the Apart Research AI Incident Sprint (Sept 2
 - **The ledger is the evidence**: append-only JSONL hash chain + fsync; evidence bundles (manifest/policy/scenario/ledger/attestation) are verifiable offline by an independent process and fail on any single-file tampering.
 - **Enforcement below the decision layer**: the worker sits on a Compose internal network with no internet route; the egress gateway is the only exit, enforcing Host-override detection, verb-to-tool mapping, rate limits, slow-heartbeat detection, and coordination-pattern content scanning.
 
-## Explicit Non-Goals
+## Roadmap Boundary
 
-- No official DeepSeek Harness integration; `dsh_adapter/` is an integration boundary and currently a DSH-shaped mock.
-- The gateway does no real-internet forwarding and no TLS MITM; its upstream is a mock.
-- No host/WSL kernel-escape claims; WSL2 + Docker Desktop is a development/demo boundary only.
-- No exploit code, real credentials, or attacks on real targets; all scenarios are synthetic fixtures.
-- Not an attempt to detect model "alignment"; final authorization comes only from the deterministic policy engine.
+The following are planned follow-up work, not part of the current version:
+
+- Official DeepSeek Harness integration (`dsh_adapter/` is currently a DSH-shaped mock boundary);
+- Real-internet forwarding and TLS termination in the gateway (the upstream is a mock);
+- Host/WSL kernel-level isolation (WSL2 + Docker Desktop is the development/demo boundary);
+- Signed attestations with protected keys and a Credential Broker.
+
+The repository contains no exploit code, real credentials, or attacks on real targets; all scenarios are synthetic fixtures.
 
 ## Architecture
 

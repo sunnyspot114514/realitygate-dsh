@@ -18,13 +18,16 @@
 - **账本即证据**：append-only JSONL 前序哈希链 + fsync；evidence bundle（manifest/policy/scenario/ledger/attestation）可由独立进程离线验证，任一文件篡改即失败。
 - **执行层也要强制**：worker 位于 Compose internal 网络（无互联网路由），egress gateway 是唯一出口，负责 Host override 检测、动词-工具映射、限速、慢速心跳检测和协调模式内容扫描。
 
-## 明确不做
+## 路线图边界
 
-- 不接入官方 DeepSeek Harness；`dsh_adapter/` 是接入边界，当前是 DSH-shaped mock。
-- gateway 不做真实互联网转发，不做 TLS MITM；上游是 mock。
-- 不声称宿主机/WSL 内核抗逃逸；WSL2 + Docker Desktop 只是开发/演示边界。
-- 不包含 exploit 代码、真实凭据或对真实目标的攻击；场景全部为合成 fixture。
-- 不以检测模型"是否对齐"为目标；最终授权只来自确定性策略引擎。
+以下内容属于后续开发方向，当前版本不包含：
+
+- 官方 DeepSeek Harness 接入（`dsh_adapter/` 目前是 DSH-shaped mock 接入边界）；
+- gateway 真实互联网转发与 TLS 终结（当前上游为 mock）；
+- 宿主机/WSL 内核级隔离（WSL2 + Docker Desktop 为开发/演示边界）；
+- 受保护密钥签名 attestation 与 Credential Broker。
+
+仓库不包含 exploit 代码、真实凭据或对真实目标的攻击；场景全部为合成 fixture。
 
 ## 架构
 
