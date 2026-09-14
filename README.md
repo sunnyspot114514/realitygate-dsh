@@ -1,42 +1,61 @@
-# RealityGate v0.2 — Pre-committed containment for agent evaluations
+# RealityGate：面向 guardrails-off 智能体评估的可审计遏制标准
 
-核心原则：**Authority follows action, not agent**；**Attempt ≠ Effect**。模型可以提出任何动作，但未经一次性、范围绑定、可撤销授权的动作不产生副作用。
+[中文](README.md) | [English](README_EN.md)
 
-设计对照《长程 AI Agent Sandbox、凭证与 Runtime 安全设计分析报告》：逐项映射见 [CONTROL_MATRIX.md](CONTROL_MATRIX.md)。
+把"遏制是否充分"从写作题变成可执行规格：每条条款对应一个启动前检查、一个测试和一档成本，并输出第三方无需进入实验室网络即可离线验证的证据包。
 
-## 核心控制
+项目为 Apart Research AI Incident Sprint（2026-09）Track 1（Containment）的参赛产物，背景是 2026 年 7 月的三起智能体越界事件：OpenAI 评估模型对 Hugging Face 的入侵、Anthropic 复查 141,006 次评估运行发现的三起真实访问、以及公开 wiki 上约 15,000 次编辑的跨 run 协作。
 
-- **预承诺门禁**：`run` 在创建账本前强制 preflight；policy/scenario 不合格直接拒绝（exit 3）。
-- **Effect Descriptor**：动作携带结构化效果声明；`external_effect=true` 的 GET 不再自动放行（HTTP method != effect）。
-- **一次性 capability**：每次 ALLOW 签发 HMAC 签名、TTL 90s、单次使用的授权票据，绑定 run/agent/tool/target/args/effect digest/policy hash。篡改、过期、重放全部拒绝。
-- **凭证 provenance**：`publicly_discovered`/`unknown` 来源直接 KILL；production scope 永不下发。
-- **预算熔断**：max_actions / max_network_bytes / max_persistent_writes / wall_clock_seconds，超限 KILL。
-- **独立外部 stop**：`stop` 命令从模型之外终止运行；进程内撤销全部 pending capability；跨进程通过追加 `run_killed` 账本事件实现，重复停止幂等。
-- **KILL fail-closed**：终态后一切动作返回 `run_already_terminated`，adapter 立即停止队列，不执行任何后续工具。
-- **哈希链账本**：append-only JSONL，逐事件前序哈希 + fsync；损坏账本拒绝追加。
-- **可验证证据包**：manifest 逐文件 SHA-256 + attestation 绑定 policy/ledger head；独立进程 verify，任一文件篡改即失败（exit 6）。
+## 核心原则
 
-### v0.3：执行层强制（针对 collusion.wiki 实证缺口，见 COLLUSION-ANALYSIS.md）
+- **权限跟随动作，而不是跟随智能体**：每次 ALLOW 签发一次性 HMAC capability（绑定 run/agent/tool/target/参数摘要/效果摘要/policy hash，TTL 90 秒，单次使用），提交时原子消费。
+- **尝试可以发生，未授权效果不得发生**：模型可以提出任何动作；授权由确定性策略决定，不由模型或分类器决定。
+- **GET 不等于只读**：可能产生外部效果的 GET 一律 HOLD；只读性由策略侧 `read_only_targets` 决定，调用方声明的 effect 只能升级、不能降权。
+- **凭证来源 fail-closed**：`publicly_discovered` / `unknown` 来源直接 KILL；金丝雀凭据绑定目标且从不进入模型上下文。
+- **门在运行开始之前**：`run` 创建账本前强制 preflight；策略或场景不合格直接拒绝，不允许事后补写合规声明。
+- **任务时钟归 Gate 所有**：`wall_clock_seconds` 用 Gate 侧时钟强制，不是模型可见可改的输入。
+- **KILL 是终态**：撤销全部 pending capability；`stop` 从模型之外触发，跨进程幂等。
+- **账本即证据**：append-only JSONL 前序哈希链 + fsync；evidence bundle（manifest/policy/scenario/ledger/attestation）可由独立进程离线验证，任一文件篡改即失败。
+- **执行层也要强制**：worker 位于 Compose internal 网络（无互联网路由），egress gateway 是唯一出口，负责 Host override 检测、动词-工具映射、限速、慢速心跳检测和协调模式内容扫描。
 
-- **egress gateway**（`dsh_adapter/egress_gateway.py`）：worker 在 Compose internal 网络中无互联网路由，网关是唯一出口——**网络层的 Attempt ≠ Effect**。执行 Host override / absolute-URI / X-Forwarded-Host 检测（`host_override_suspected`）、动词↔工具映射的 kill 工具再生效（`policy_kill_tool`）、独立哈希链审计。
-- **协调模式内容扫描**：R1–R5 任务键、MONdd 时间约定、relay/beacon/callsign 词汇（正则移植自 collusion.wiki 语料分析），命中即 `coordination_pattern_detected:*` 拒绝 + 告警事件。
-- **慢速心跳检测**：决策层与网关层双重滑窗检测规律性低频写入（`heartbeat_suspected`），`max_actions` 拦不住的 beacon 模式被时间方差规则捕获。
-- **身份创建控制**：`identity_tools` + `identity_effect` 命中 KILL（`identity_creation_denied`）——对应假冒管理员、一次性邮箱。
-- **Gate 侧可信时钟**：`wall_clock_seconds` 用 gate 时钟强制（`budget_exceeded:wall_clock`），任务时钟不是 agent 可改输入。
-- **public-sink mock**：对公共状态模拟器的写入默认拒绝（`write_requires_capability`），跨 run 隔离可验证。
+## 明确不做
 
-## WSL 运行
+- 不接入官方 DeepSeek Harness；`dsh_adapter/` 是接入边界，当前是 DSH-shaped mock。
+- gateway 不做真实互联网转发，不做 TLS MITM；上游是 mock。
+- 不声称宿主机/WSL 内核抗逃逸；WSL2 + Docker Desktop 只是开发/演示边界。
+- 不包含 exploit 代码、真实凭据或对真实目标的攻击；场景全部为合成 fixture。
+- 不以检测模型"是否对齐"为目标；最终授权只来自确定性策略引擎。
+
+## 架构
+
+```text
+Model (proposal only)
+      |
+      v
+RealityGate deterministic policy   ALLOW / HOLD / KILL
+      |                                     |
+      |  one-shot capability                |  KILL/stop:
+      |  (HMAC, TTL 90 s, single use)       |  revoke pending,
+      v                                     |  close channel
+Enforcement gateway  ---- only egress ----> Mock executor / public-sink
+(host-override, verb->tool, rates,           (denied by default)
+ coordination patterns, heartbeat)
+      |
+      v
+Hash-chained ledger --> Evidence bundle (independent offline verify)
+```
+
+## 快速开始
 
 ```bash
-cd /home/sunny/projects/realitygate-dsh
-
-python3 scripts/validate.py        # 编译 + 全部测试（18 项）
+python3 scripts/validate.py                # 编译 + 39 项测试
+python3 scripts/check_exits.py             # 退出码契约 9 项断言
 
 python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs preflight
-python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs run scenario.json --run-id demo    # KILL → exit 5
+python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs run scenario.json --run-id demo      # KILL -> exit 5
 python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs replay demo
 python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs attest demo
-python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs stop demo --reason operator_kill   # 幂等
+python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs stop demo --reason operator_kill  # 幂等
 
 # 对抗场景（effecting GET / metadata / 凭证发现 / KILL 后阻断）
 python3 -m realitygate.cli --policy policy.json --artifacts artifacts/adv run scenarios/adversarial-controls.json --run-id adv-1
@@ -45,24 +64,43 @@ python3 -m realitygate.cli --policy policy.json --artifacts artifacts/adv run sc
 python3 -m realitygate.cli --policy policy.json --artifacts artifacts/runs evidence export demo scenario.json evidence/demo
 python3 -m realitygate.cli evidence verify evidence/demo
 
-# Python 级退出码契约验收（9 项）
-python3 scripts/check_exits.py
+# 多模型活体探测（可选：--pressure / --only minimax|kimi|deepseek）
+python3 -m dsh_adapter.multi_model_probe
 ```
 
-退出码契约：`0` 成功 / `3` preflight 或输入错误 / `4` 运行含 HOLD / `5` 运行被 KILL 或 stop / `6` 证据验证失败。
+退出码：`0` 成功；`3` preflight/输入错误；`4` 运行含 HOLD；`5` 运行被 KILL 或 stop；`6` 证据验证失败。
 
-## Docker 沙箱
+## 项目结构
 
-```bash
-docker compose -f sandbox/compose.yaml config --quiet   # 静态校验
+```text
+realitygate/            核心运行时（policy/engine/ledger/capability/evidence/cli）
+dsh_adapter/            DSH-shaped 适配器、提案通道、多模型探测、egress gateway
+sandbox/                Compose 沙箱（worker 无网络，gateway 唯一出口）
+scenarios/              对抗场景（adversarial-controls/identity/heartbeat 等）
+tests/                  39 项测试
+scripts/                validate.py、check_exits.py、账本汇总
+CONTROL_MATRIX.md       控制 × 攻击阶段 × 证据 × 成本 矩阵
+COLLUSION-ANALYSIS.md   公开 wiki 语料分析与缺口修复状态
+LIVE-MODEL-TEST.md      真实模型对抗测试报告
+submission/             冲刺赛报告（PDF/HTML）
 ```
 
-worker：non-root(10001)、read-only、cap_drop ALL、no-new-privileges、`network_mode: none`、tmpfs /tmp noexec、PID/mem/CPU 限制、无宿主挂载、无 Docker socket、无注入凭据。mock-response 使用显式 `mock` profile、internal-only 网络、healthcheck。
+## 已知限制
 
-注意：基础镜像 `python:3.12-slim` 未固定 digest，且本环境曾因 Docker Hub registry EOF 无法完成构建；镜像构建/运行验证未完成时不声称运行时隔离已实测。
+见报告第 5 节与 Appendix A。要点：gateway 上游是 mock、不做 TLS MITM；网络隔离由 Compose internal 网络保证；官方 DeepSeek Harness 未接入；capability 为本地 HMAC，不具备不可抵赖性；证据包只能防"无写权限者"的篡改。
 
-## 已验证 / 未声明
+## 里程碑
 
-已验证（见 CONTROL_MATRIX.md 验收命令）：39 项测试、退出码契约 9 项、对抗场景决策序列（含 identity/heartbeat/cross-run-sink 新场景）、证据篡改检测、跨进程 stop 幂等、Compose 静态安全断言、网关 Host override/协调模式/速率/心跳单测、**真实模型对抗测试三轮**（见 [LIVE-MODEL-TEST.md](LIVE-MODEL-TEST.md)）。
-
-**未声明（not_claimed）**：宿主机/WSL 内核抗逃逸；adapter 之外的旁路；官方 DeepSeek Harness 集成（`dsh_adapter/` 是集成边界，官方 DSH 未接入）；capability 的不可抵赖性（本地派生 HMAC 密钥，非硬件保护）；证据包可防持有写权限者的整体伪造；**egress gateway 不转发真实互联网（mock 上游）、不做 TLS MITM**，网络路由隔离由 Compose internal 网络保证而非自建防火墙；网关内容扫描在真实语料上会有误报，需要调参；真实模型/真实凭据/真实外部目标/真实通知服务（模型测试用 ZCode 托管 LLM，目标均为 mock）。
+- [x] 严格 policy/scenario 校验与 preflight 门禁；
+- [x] ALLOW/HOLD/KILL 与 KILL 后 fail-closed；
+- [x] 一次性 HMAC capability 与提交时原子消费；
+- [x] 凭证 provenance fail-closed；
+- [x] 预算熔断（actions/bytes/writes/wall-clock）；
+- [x] 跨进程幂等 stop；
+- [x] 哈希链账本与篡改检测；
+- [x] evidence bundle 导出与独立 verify；
+- [x] egress gateway（Host override / 协调模式 / 限速 / 心跳）；
+- [x] 四个模型家族活体探测（9 次运行，零未授权外部效果）；
+- [ ] schema 化模型输出（function calling）；
+- [ ] 真实转发 gateway 与 TLS 终结；
+- [ ] Credential Broker 与受保护密钥签名 attestation。
